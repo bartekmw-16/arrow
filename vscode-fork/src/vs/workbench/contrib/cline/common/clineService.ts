@@ -1,26 +1,23 @@
 /*---------------------------------------------------------------------------------------------
- * Cline IDE — Phase 1 Scaffold
+ * Cline IDE — Full Service Interface
  * Service interface & DI decorator for the Cline agent service.
  *
- * Drop this file into the VS Code OSS fork at the same relative path:
+ * Drop this file into the VS Code OSS fork at:
  *   src/vs/workbench/contrib/cline/common/clineService.ts
  *--------------------------------------------------------------------------------------------*/
 
 import { createDecorator } from 'vs/platform/instantiation/common/instantiation';
 import { Event } from 'vs/base/common/event';
+import { IDiffProposal } from '../browser/editor/inlineDiffDecorator';
 
 // ---------------------------------------------------------------------------
 // Agent state
 // ---------------------------------------------------------------------------
 
 export const enum AgentState {
-	/** The service has been created but no session has started yet. */
 	Idle = 'idle',
-	/** The agent is actively processing a task. */
 	Running = 'running',
-	/** The agent completed its last task successfully. */
 	Done = 'done',
-	/** The agent encountered an unrecoverable error. */
 	Error = 'error',
 }
 
@@ -34,10 +31,6 @@ export interface IAgentStateChangeEvent {
 // ---------------------------------------------------------------------------
 
 export interface IClineService {
-	/**
-	 * Service brand — required by VS Code's DI system.
-	 * @internal
-	 */
 	readonly _serviceBrand: undefined;
 
 	/** Fires whenever the agent state changes. */
@@ -46,29 +39,45 @@ export interface IClineService {
 	/** The current agent state. */
 	readonly state: AgentState;
 
-	/**
-	 * Start an agent session.
-	 * Resolves when the agent is ready to accept tasks.
-	 */
+	/** Start an agent session. */
 	startAgent(): Promise<void>;
 
-	/**
-	 * Stop the currently running agent session.
-	 * Resolves when the agent process has fully exited.
-	 */
+	/** Stop the currently running agent session. */
 	stopAgent(): Promise<void>;
 
-	/**
-	 * Return a snapshot of the current agent state.
-	 * Equivalent to reading `state` but provided as a method for callers
-	 * that prefer an async-compatible signature.
-	 */
+	/** Return a snapshot of the current agent state. */
 	getAgentState(): AgentState;
+
+	/**
+	 * Send a user message to the agent.
+	 * Starts the agent if not already running.
+	 */
+	sendMessage(text: string, images?: string[]): Promise<void>;
+
+	/** Cancel the currently running task. */
+	cancelCurrentTask(): Promise<void>;
+
+	/**
+	 * Ask the agent to generate an edit for the given instruction + context.
+	 * Returns a diff proposal that the editor contribution will show inline,
+	 * or null if the model produced no change.
+	 */
+	generateEdit(params: {
+		instruction: string;
+		context: string;
+		fileUri: string;
+		cursorLine: number;
+	}): Promise<IDiffProposal | null>;
+
+	/** Open a file in the editor, optionally scrolling to a line. */
+	openFile(fileUri: string, line?: number): Promise<void>;
+
+	/** Open the Cline settings page. */
+	openSettings(): Promise<void>;
 }
 
 // ---------------------------------------------------------------------------
 // DI service identifier
 // ---------------------------------------------------------------------------
 
-/** Unique DI token used across the workbench to resolve `IClineService`. */
 export const IClineService = createDecorator<IClineService>('clineService');

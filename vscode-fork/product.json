@@ -1,0 +1,49 @@
+{
+	"nameShort": "Cline IDE",
+	"nameLong": "Cline IDE - AI Native",
+	"applicationName": "cline-ide",
+	"dataFolderName": ".cline-ide",
+	"win32MutexName": "clineide",
+	"win32AppUserModelId": "ClineIDE.ClineIDE",
+	"win32RegValueName": "ClineIDE",
+	"win32x64UserAppId": "{{NSIS_APP_ID}}",
+	"win32x86UserAppId": "{{NSIS_APP_ID_X86}}",
+	"win32arm64UserAppId": "{{NSIS_APP_ID_ARM64}}",
+	"win32x64AppId": "{{NSIS_MACHINE_APP_ID}}",
+	"win32x86AppId": "{{NSIS_MACHINE_APP_ID_X86}}",
+	"win32arm64AppId": "{{NSIS_MACHINE_APP_ID_ARM64}}",
+	"win32UserAppId": "{{NSIS_USER_APP_ID}}",
+	"linuxIconName": "cline-ide",
+	"licenseFileName": "LICENSE.txt",
+	"darwinBundleIdentifier": "com.cline.ClineIDE",
+	"darwinApplicationCategoryType": "public.app-category.developer-tools",
+	"darwinImportantPlist": {},
+	"reportIssueUrl": "https://github.com/cline/cline/issues/new",
+	"urlProtocol": "cline-ide",
+	"webviewContentExternalBaseUrlTemplate": "https://{{uuid}}.vscode-cdn.net/insider/{{commit}}/out/vs/workbench/contrib/webview/browser/pre/",
+	"builtInExtensions": [],
+	"extensionAllowedProposedApi": [
+		"cline.cline-ai"
+	],
+	"extensionAllowedProposedApiForAll": false,
+	"extensionsGallery": {
+		"serviceUrl": "https://marketplace.visualstudio.com/_apis/public/gallery",
+		"cacheUrl": "https://vscode.blob.core.windows.net/gallery/index",
+		"itemUrl": "https://marketplace.visualstudio.com/items",
+		"resourceUrlTemplate": "https://{publisher}.vscode-cdn.net/extensions/{name}/{version}/{path}",
+		"controlUrl": "https://az764295.vo.msecnd.net/extensions/marketplace.json",
+		"recommendationsUrl": "https://az764295.vo.msecnd.net/extensions/workspaceRecommendations.json.gz",
+		"nlsBaseUrl": "https://az764295.vo.msecnd.net/extensions/",
+		"publisherUrl": "https://marketplace.visualstudio.com/publishers"
+	},
+	"linkProtectionTrustedDomains": [
+		"https://cline.bot",
+		"https://github.com/cline",
+		"https://marketplace.visualstudio.com"
+	],
+	"updateUrl": "https://update.cline.bot",
+	"target": "stable",
+	"commit": "{{COMMIT}}",
+	"date": "{{DATE}}",
+	"checksums": {}
+}

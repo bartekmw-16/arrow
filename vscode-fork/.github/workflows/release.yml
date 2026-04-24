@@ -1,0 +1,243 @@
+# Cline IDE — VS Code OSS Fork Release Workflow
+#
+# Triggered on:
+#   - Tags matching v* pushed to the fork repo (e.g. v1.0.0)
+#   - Manual dispatch for pre-releases
+#
+# Produces signed/unsigned binaries for:
+#   - Linux x64  (.tar.gz + .deb)
+#   - macOS arm64 (.dmg + .zip)
+#   - Windows x64 (.exe NSIS installer + portable .zip)
+#
+# IMPORTANT: Copy this file to the VS Code OSS fork's .github/workflows/.
+# It is NOT used in the Cline extension repo.
+
+name: Cline IDE Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      prerelease:
+        description: 'Mark as pre-release'
+        required: false
+        default: 'false'
+
+permissions:
+  contents: write   # needed to create GitHub Releases
+
+env:
+  CI: true
+  VSCODE_ARCH: x64
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Linux x64
+  # ---------------------------------------------------------------------------
+  linux:
+    name: Linux x64
+    runs-on: ubuntu-22.04
+    timeout-minutes: 120
+
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+
+      - name: Read Node version
+        id: nvmrc
+        run: echo "NODE_VERSION=$(cat .nvmrc | tr -d '[:space:]')" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ steps.nvmrc.outputs.NODE_VERSION }}
+          cache: yarn
+
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.11' }
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y \
+            libx11-dev libxkbfile-dev libsecret-1-dev libkrb5-dev \
+            pkg-config rpm fakeroot imagemagick \
+            xvfb dpkg-dev
+
+      - name: Install JS dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Apply Cline branding
+        run: node_modules/.bin/gulp cline-patch-product
+
+      - name: Build Cline agent bundle
+        run: node_modules/.bin/gulp cline-agent-bundle
+
+      - name: Build Linux x64 binary
+        run: yarn gulp vscode-linux-x64
+
+      - name: Build .deb package
+        run: yarn gulp vscode-linux-x64-build-deb
+
+      - name: Create tar.gz archive
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          tar -czf cline-ide-${VERSION}-linux-x64.tar.gz \
+            -C ../VSCode-linux-x64 .
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-x64
+          path: |
+            cline-ide-*.tar.gz
+            .build/linux/deb/**/*.deb
+          retention-days: 7
+
+  # ---------------------------------------------------------------------------
+  # macOS arm64
+  # ---------------------------------------------------------------------------
+  macos:
+    name: macOS arm64
+    runs-on: macos-14
+    timeout-minutes: 120
+
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+
+      - name: Read Node version
+        id: nvmrc
+        run: echo "NODE_VERSION=$(cat .nvmrc | tr -d '[:space:]')" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ steps.nvmrc.outputs.NODE_VERSION }}
+          cache: yarn
+
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.11' }
+
+      - name: Install JS dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Apply Cline branding
+        run: node_modules/.bin/gulp cline-patch-product
+
+      - name: Build Cline agent bundle
+        run: node_modules/.bin/gulp cline-agent-bundle
+
+      - name: Build macOS arm64 binary
+        run: yarn gulp vscode-darwin-arm64
+        env:
+          VSCODE_ARCH: arm64
+
+      - name: Create zip archive
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          zip -r cline-ide-${VERSION}-darwin-arm64.zip ../VSCode-darwin-arm64
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: darwin-arm64
+          path: cline-ide-*.zip
+          retention-days: 7
+
+  # ---------------------------------------------------------------------------
+  # Windows x64
+  # ---------------------------------------------------------------------------
+  windows:
+    name: Windows x64
+    runs-on: windows-latest
+    timeout-minutes: 120
+
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+
+      - name: Read Node version
+        id: nvmrc
+        run: |
+          $version = (Get-Content .nvmrc).Trim()
+          echo "NODE_VERSION=$version" >> $env:GITHUB_OUTPUT
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ steps.nvmrc.outputs.NODE_VERSION }}
+          cache: yarn
+
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.11' }
+
+      - name: Install JS dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Apply Cline branding
+        run: node_modules/.bin/gulp cline-patch-product
+
+      - name: Build Cline agent bundle
+        run: node_modules/.bin/gulp cline-agent-bundle
+
+      - name: Build Windows x64 binary
+        run: yarn gulp vscode-win32-x64
+
+      - name: Build NSIS installer
+        run: yarn gulp vscode-win32-x64-inno-updater
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: win32-x64
+          path: |
+            .build/win32-x64/**/*.exe
+            .build/win32-x64/**/*.zip
+          retention-days: 7
+
+  # ---------------------------------------------------------------------------
+  # Publish GitHub Release
+  # ---------------------------------------------------------------------------
+  release:
+    name: Publish Release
+    needs: [linux, macos, windows]
+    runs-on: ubuntu-22.04
+    if: startsWith(github.ref, 'refs/tags/v')
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist/
+
+      - name: List downloaded artifacts
+        run: find dist/ -type f | sort
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "Cline IDE ${{ github.ref_name }}"
+          draft: false
+          prerelease: ${{ github.event.inputs.prerelease == 'true' || contains(github.ref_name, '-') }}
+          body: |
+            ## Cline IDE ${{ github.ref_name }}
+
+            AI-native development environment based on VS Code OSS.
+
+            ### Downloads
+            | Platform | File |
+            |----------|------|
+            | Linux x64 | `cline-ide-*-linux-x64.tar.gz` |
+            | Linux x64 .deb | `cline-ide_*_amd64.deb` |
+            | macOS Apple Silicon | `cline-ide-*-darwin-arm64.zip` |
+            | Windows x64 | `ClineIDESetup-*.exe` |
+
+            ### What's Changed
+            See [CHANGELOG](https://github.com/cline/cline/blob/cline-ide/main/CHANGELOG.md).
+          files: |
+            dist/linux-x64/*.tar.gz
+            dist/linux-x64/**/*.deb
+            dist/darwin-arm64/*.zip
+            dist/win32-x64/**/*.exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

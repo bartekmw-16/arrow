@@ -1,23 +1,36 @@
 /*---------------------------------------------------------------------------------------------
- * Cline IDE — Phase 1 Scaffold
- * Barrel export — re-exports all public types from the cline contribution.
+ * Cline IDE — Barrel export
+ * Re-exports all public types from the cline workbench contribution.
  *
- * Drop this file into the VS Code OSS fork at the same relative path:
+ * Drop this file into the VS Code OSS fork at:
  *   src/vs/workbench/contrib/cline/index.ts
  *--------------------------------------------------------------------------------------------*/
 
-// Common (platform-agnostic) surface area
+// Common (platform-agnostic)
 export { IClineService, AgentState } from './common/clineService';
 export type { IAgentStateChangeEvent } from './common/clineService';
 
-// Browser-layer identifiers useful to other contributions
-export { CLINE_VIEW_CONTAINER_ID, CLINE_VIEW_CONTAINER } from './browser/clineViewContainer';
+export { IClineIndexerService, IndexingStatus } from './common/clineIndexerService';
+export type {
+	ICodeChunk, ChunkKind, ISearchResult, IFileSymbol,
+	IIndexUpdateEvent, IIndexingProgress,
+} from './common/clineIndexerService';
+
+// Browser-layer identifiers
+export { CLINE_VIEW_CONTAINER_ID, CLINE_VIEW_CONTAINER, CLINE_VIEW_ICON } from './browser/clineViewContainer';
 export { ClineView } from './browser/clineView';
 
-// Action IDs (useful for tests and other contributions that want to trigger actions)
-// Action classes themselves are not exported; use their static ID strings.
+// Webview message protocol
+export type { HostToWebviewMessage, WebviewToHostMessage } from './browser/panel/webviewMessages';
+
+// Editor contribution
+export { ClineEditorContribution, CLINE_EDITOR_CONTRIB_ID } from './browser/editor/clineEditorContribution';
+export type { IDiffProposal } from './browser/editor/inlineDiffDecorator';
+
+// Action IDs
 export const ClineActionIds = {
 	OpenAgent: 'cline.openAgent',
 	StartSession: 'cline.startSession',
 	StopSession: 'cline.stopSession',
+	ToggleCmdk: 'cline.editor.toggleCmdk',
 } as const;

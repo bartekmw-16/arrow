@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'none';
+                 script-src 'nonce-{{NONCE}}';
+                 style-src 'unsafe-inline' {{WEBVIEW_RESOURCE_ORIGIN}};
+                 img-src data: {{WEBVIEW_RESOURCE_ORIGIN}} https:;
+                 font-src {{WEBVIEW_RESOURCE_ORIGIN}};
+                 connect-src 'none';" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cline Agent</title>
+
+  <!--
+    VS Code CSS variables are injected into :root by the webview host, so
+    all var(--vscode-*) references resolve automatically.
+  -->
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body, #root {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      overflow: hidden;
+      background: var(--vscode-panel-background, #1e1e1e);
+      color: var(--vscode-foreground, #d4d4d4);
+      font-family: var(--vscode-font-family, sans-serif);
+      font-size: var(--vscode-font-size, 13px);
+    }
+    /* Loading indicator shown before React hydrates */
+    #loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      gap: 8px;
+      opacity: 0.6;
+    }
+    .spinner {
+      width: 16px; height: 16px;
+      border: 2px solid currentColor;
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+
+  <!-- The bundled Cline React app is loaded here.
+       {{SCRIPT_URI}} is replaced by ClineWebviewHost at runtime. -->
+  <link rel="stylesheet" href="{{STYLES_URI}}" />
+</head>
+<body>
+  <div id="root">
+    <div id="loading">
+      <div class="spinner"></div>
+      <span>Loading Cline…</span>
+    </div>
+  </div>
+  <script nonce="{{NONCE}}" src="{{SCRIPT_URI}}"></script>
+</body>
+</html>

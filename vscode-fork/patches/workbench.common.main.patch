@@ -1,0 +1,21 @@
+--- a/src/vs/workbench/workbench.common.main.ts
++++ b/src/vs/workbench/workbench.common.main.ts
+@@ -UPSTREAM_LINE_NUMBER,0 +UPSTREAM_LINE_NUMBER,1 @@
++import 'vs/workbench/contrib/cline/browser/cline.contribution';
+
+// ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+// HOW TO APPLY
+// ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+//
+// 1. Open `src/vs/workbench/workbench.common.main.ts` in the VS Code OSS repo.
+// 2. Find the last block of `import 'vs/workbench/contrib/...'` statements
+//    (typically near the end of the file, grouped by feature area).
+// 3. Add the following line as the last entry in that block:
+//
+//      import 'vs/workbench/contrib/cline/browser/cline.contribution';
+//
+// WHY
+// ^^^
+// This single side-effect import triggers the Cline contribution's
+// self-registration via the VS Code Registry pattern.  No other changes to
+// existing files are required for the browser/common layer.

@@ -1,0 +1,128 @@
+# Cline IDE — VS Code OSS Fork Build
+#
+# Triggered on:
+#   - Pushes to the cline-ide/main branch of the VS Code OSS fork
+#   - Pull requests targeting cline-ide/main
+#
+# Produces installable binaries for Linux x64 and macOS arm64.
+#
+# IMPORTANT: This workflow is designed to run in the VS Code OSS fork repo,
+# NOT in the Cline extension repo. Copy this file to the fork's
+# .github/workflows/ directory before use.
+
+name: Cline IDE Build
+
+on:
+  push:
+    branches:
+      - 'cline-ide/main'
+  pull_request:
+    branches:
+      - 'cline-ide/main'
+  workflow_dispatch: {}
+
+env:
+  CI: true
+  ELECTRON_SKIP_BINARY_DOWNLOAD: 0
+
+jobs:
+  build:
+    name: Build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 90
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-22.04
+            gulp_target: vscode-linux-x64
+            artifact_path: '../VSCode-linux-x64'
+            artifact_name: 'cline-ide-linux-x64'
+          - os: macos-14
+            gulp_target: vscode-darwin-arm64
+            artifact_path: '../VSCode-darwin-arm64'
+            artifact_name: 'cline-ide-darwin-arm64'
+
+    steps:
+      - name: Checkout VS Code OSS fork
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Read Node version from .nvmrc
+        id: nvmrc
+        run: echo "NODE_VERSION=$(cat .nvmrc | tr -d '[:space:]')" >> "$GITHUB_OUTPUT"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ steps.nvmrc.outputs.NODE_VERSION }}
+          cache: 'yarn'
+
+      - name: Setup Python (for native module compilation)
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Linux build dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y \
+            libx11-dev libxkbfile-dev libsecret-1-dev \
+            libkrb5-dev pkg-config \
+            rpm fakeroot \
+            xvfb
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Patch product.json with Cline IDE branding
+        run: node_modules/.bin/gulp cline-patch-product
+
+      - name: Compile TypeScript
+        run: yarn gulp compile-build
+
+      - name: Build ${{ matrix.gulp_target }}
+        run: yarn gulp ${{ matrix.gulp_target }}
+
+      - name: Create archive (Linux)
+        if: runner.os == 'Linux'
+        run: tar -czf ${{ matrix.artifact_name }}.tar.gz -C "${{ matrix.artifact_path }}/.." "$(basename '${{ matrix.artifact_path }}')"
+
+      - name: Create archive (macOS)
+        if: runner.os == 'macOS'
+        run: zip -r ${{ matrix.artifact_name }}.zip "${{ matrix.artifact_path }}"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: |
+            ${{ matrix.artifact_name }}.tar.gz
+            ${{ matrix.artifact_name }}.zip
+          if-no-files-found: error
+          retention-days: 14
+
+  typecheck:
+    name: TypeScript type-check
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read Node version
+        id: nvmrc
+        run: echo "NODE_VERSION=$(cat .nvmrc | tr -d '[:space:]')" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ steps.nvmrc.outputs.NODE_VERSION }}
+          cache: 'yarn'
+
+      - run: yarn install --frozen-lockfile
+
+      - name: Type-check
+        run: npx tsc --noEmit -p tsconfig.json

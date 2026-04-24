@@ -1,0 +1,27 @@
+--- a/src/vs/workbench/workbench.desktop.main.ts
++++ b/src/vs/workbench/workbench.desktop.main.ts
+@@ -UPSTREAM_LINE_NUMBER,0 +UPSTREAM_LINE_NUMBER,1 @@
++import 'vs/workbench/contrib/cline/node/clineServiceImpl';
+
+// ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+// HOW TO APPLY
+// ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+//
+// 1. Open `src/vs/workbench/workbench.desktop.main.ts` in the VS Code OSS repo.
+// 2. Find the section of `import 'vs/workbench/contrib/...'` statements that
+//    load desktop (Node.js / Electron) specific service implementations.
+//    These are typically found after the common imports.
+// 3. Add the following line:
+//
+//      import 'vs/workbench/contrib/cline/node/clineServiceImpl';
+//
+// WHY
+// ^^^
+// The common contribution (cline.contribution.ts) calls registerSingleton()
+// with ClineServiceImpl, but the *import* of that implementation class must
+// be triggered separately for the desktop entrypoint.  This ensures the class
+// is included in the Electron bundle but not in the web/remote bundle (where
+// a different implementation can be substituted in a future phase).
+//
+// NOTE: If the VS Code OSS repo has merged the common and desktop entrypoints,
+// this import can be added directly to workbench.common.main.ts instead.
